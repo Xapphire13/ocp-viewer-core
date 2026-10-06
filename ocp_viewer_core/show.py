@@ -863,7 +863,7 @@ class Viewer(Generic[H]):
         height=None,
         pinning=None,
         theme=None,
-        progress="-+*c",
+        progress="-+c",
         glass=None,
         tools=None,
         tree_width=None,
@@ -955,10 +955,9 @@ class Viewer(Generic[H]):
                                      Render.FACES: show faces only
                                      Render.NONE: hide object
             materials:               List of Material objects or material name strings for the cad_objs. Needs to have the same length as cad_objs (default=None)
-            progress:                Show progress of tessellation with None is no progress indicator. (default="-+*c")
+            progress:                Show progress of tessellation with None is no progress indicator. (default="-+c")
                                      for object: "-": is reference,
                                                  "+": gets tessellated with Python code,
-                                                 "*": gets tessellated with native code,
                                                  "c": from cache
             port:                    The viewer to address, for a host that runs more than one
             viewer:                  The sidecar to draw into, for a host that has sidecars
@@ -1279,7 +1278,7 @@ class Viewer(Generic[H]):
         height=None,
         pinning=None,
         theme=None,
-        progress="-+*c",
+        progress="-+c",
         glass=None,
         tools=None,
         tree_width=None,
@@ -1382,10 +1381,9 @@ class Viewer(Generic[H]):
             height:                  Height of the viewer, where the caller decides it
             pinning:                 Whether the view can be pinned as a PNG
             theme:                   "light", "dark" or "browser"
-            progress:                Show progress of tessellation with None is no progress indicator. (default="-+*c")
+            progress:                Show progress of tessellation with None is no progress indicator. (default="-+c")
                                      for object: "-": is reference,
                                                  "+": gets tessellated with Python code,
-                                                 "*": gets tessellated with native code,
                                                  "c": from cache
 
 
@@ -1506,7 +1504,7 @@ class Viewer(Generic[H]):
         return self._show_object(obj, **none_filter(locals(), ["obj", "self"]))
 
     def remove_object(
-        self, name, call_show=False, port=None, progress="-+*c"
+        self, name, call_show=False, port=None, progress="-+c"
     ) -> H | None:
         """Remove object from the stack of objects by name"""
         try:
@@ -1690,7 +1688,7 @@ class Viewer(Generic[H]):
         height=None,
         pinning=None,
         theme=None,
-        progress="-+*c",
+        progress="-+c",
         glass=None,
         tools=None,
         tree_width=None,
@@ -1770,10 +1768,9 @@ class Viewer(Generic[H]):
         """Show incrementally pushed CAD objects in the viewer
 
         Keywords for show_objects:
-            progress:                Show progress of tessellation with None is no progress indicator. (default="-+*c")
+            progress:                Show progress of tessellation with None is no progress indicator. (default="-+c")
                                      for object: "-": is reference,
                                                  "+": gets tessellated with Python code,
-                                                 "*": gets tessellated with native code,
                                                  "c": from cache
 
 

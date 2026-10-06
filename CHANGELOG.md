@@ -2,6 +2,10 @@
 
 Since 1.0.2 the Python and JavaScript halves version separately on the patch level and agree on major.minor - see `Development.md`. Entries say which half they belong to.
 
+## Python (unreleased)
+
+- The native-tessellator toggles are removed: `NATIVE_TESSELLATOR_AVAILABLE`, `enable_native_tessellator()`, `disable_native_tessellator()`, `is_native_tessellator_enabled()`, `init_native_tessellator()` and the `NATIVE_TESSELLATOR` environment variable. ocp-tessellate drops its native tessellator and `ocp_addons` (ocp-tessellate 3.6.0), so there is nothing left to toggle; `ocp_viewer_core.tessellator` re-exports `ImageFace` only. The `progress` default of `show`, `show_object`, `remove_object` and `show_objects` is `"-+c"`, since the `"*"` mark for natively tessellated objects is never emitted any more; a string that still contains `"*"` keeps working.
+
 ## Python v1.0.13 (2026-09-15)
 
 - `push_object(obj, name, update=True)` for a name that was never pushed adds it instead of raising `ValueError` from `list.index`. Ported from vscode-ocp-cad-viewer PR #238 (Arbel Arad), which landed on that repository's `main` in the old `ocp_vscode/show.py` after the function had moved here, so the adoption dropped it. `tests/test_push_object.py` covers the registry.
