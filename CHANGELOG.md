@@ -2,8 +2,13 @@
 
 Since 1.0.2 the Python and JavaScript halves version separately on the patch level and agree on major.minor - see `Development.md`. Entries say which half they belong to.
 
-## Python (unreleased)
+## JavaScript v1.1.0 (unreleased)
 
+- No change of its own: the minor follows the Python half, because major.minor is the contract between the halves (`Development.md`)
+
+## Python v1.1.0 (unreleased)
+
+- Requires `ocp-tessellate>=4.0.0,<4.1.0` (was `>=3.5.0,<3.6.0`)
 - ocp-viewer-core imports no OCCT binding any more: the OCCT parts of `measure.py` and `materials.py` moved to ocp-tessellate (`face_normal`, `closest_directions`, `angle_between`, `vis_material_values`, `make_vis_material`), which handles OCP and nanocct objects alike. Measurements and material conversions are unchanged on OCP (identical results), work with nanocct shapes, and on nanocct the emissive term of a material now survives the round trip (OCP 8 still does not bind it; its 2 emissive tests skip there instead of failing). Needs ocp-tessellate 4.0.0
 - Breaking: `measure.get_center` returns the center as `(x, y, z)` instead of a vertex, and `calc_distance(..., center=True)` computes the distance of the two centers from their coordinates. A vertex built from a center of mass (a tuple) would be in the default binding, not in the shape's, and the distance of two nanocct centers failed with mixed bindings. `get_center` is used only by `calc_distance`
 - `get_center` handles wires, shells, compsolids and compounds (it raised `UnboundLocalError` for them, so a center distance between two build123d parts failed), and `get_shape_type` / `get_geom_type` know wires and shells ("Wire", "Shell", geom type "Other") instead of reporting them as unknown. `get_properties` reports the length of a wire and the area of a shell, with their center of mass as reference point. Centers of mass come from ocp-tessellate's `center_of_mass`, which now measures compounds of faces or edges correctly
