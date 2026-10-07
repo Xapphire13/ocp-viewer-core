@@ -168,24 +168,27 @@ Warnings are deliberately module-level rather than instance state: `warnings` is
 
 ### The modules beside the pipeline
 
-| module         | what it is                                       | reaches OCP |
-| -------------- | ------------------------------------------------ | ----------- |
-| `comms.py`     | the transport contract, `Session`, `MessageType` | no          |
-| `codec.py`     | what JSON cannot carry: BREP, locations, enums   | yes         |
-| `config.py`    | defaults, precedence, enums                      | no          |
-| `screenshot.py`| writing the image a viewer hands back            | no          |
-| `keys.py`      | the key vocabulary                               | no          |
-| `state.py`     | the registry of running viewers, `~/.ocpvscode`  | no          |
-| `websocket.py` | the websocket client every socket host uses      | no          |
-| `show.py`      | the show pipeline                                | yes         |
-| `backend.py`   | the measurement backend                          | yes         |
-| `measure.py`   | the OCCT measurements themselves                 | yes         |
-| `colors.py`    | the colour catalogue and `BaseColorMap`          | no          |
-| `logo.py`      | the splash as measurable BREP                    | no          |
+| module         | what it is                                       | reaches OCCT |
+| -------------- | ------------------------------------------------ | ------------ |
+| `comms.py`     | the transport contract, `Session`, `MessageType` | no           |
+| `codec.py`     | what JSON cannot carry: BREP, locations, enums   | yes          |
+| `config.py`    | defaults, precedence, enums                      | no           |
+| `screenshot.py`| writing the image a viewer hands back            | no           |
+| `keys.py`      | the key vocabulary                               | no           |
+| `state.py`     | the registry of running viewers, `~/.ocpvscode`  | no           |
+| `websocket.py` | the websocket client every socket host uses      | no           |
+| `show.py`      | the show pipeline                                | yes          |
+| `backend.py`   | the measurement backend                          | yes          |
+| `measure.py`   | the measurements: properties, distances, angles  | yes          |
+| `materials.py` | `XCAFDoc_VisMaterial` ↔ `PbrProperties`          | yes          |
+| `colors.py`    | the colour catalogue and `BaseColorMap`          | no           |
+| `logo.py`      | the splash as measurable BREP                    | no           |
 
-**`__init__.py` imports nothing but the version.** A host imports the submodule it needs, so importing the package never loads the tessellator or OCP. That is also a detectable property rather than a promise: if the config merge or the transport contract could not import without geometry, the layer would have leaked and the import graph would say so.
+**No module imports an OCCT binding.** "Reaches OCCT" means through [ocp-tessellate](https://github.com/bernhard-42/ocp-tessellate): `codec.py`, `show.py`, `backend.py`, `measure.py` and `materials.py` call its functions and the methods of the OCCT objects these return, and ocp-tessellate supports both bindings, OCP and nanocct, installed alone or together. An OCCT object is handled with its own binding, so the show pipeline tessellates a nanocct model and reads its materials with nanocct. Where no object decides, ocp-tessellate's default applies: OCP if it is installed, else nanocct, and nanocct after `ocp_tessellate.prefer_nanocct(True)`. That includes the measurement backend: it measures the BREP the viewer sends back, which `deserialize` rebuilds in the default binding, whatever binding the shown model was in (the results are the same in both). The OCCT halves of the measurements (`face_normal`, `closest_directions`, `angle_between`) and of the material conversion (`vis_material_values`, `make_vis_material`) live there, where the differences between the bindings and OCP versions are handled; this package keeps the report wording and the mapping to threejs-materials. The concept is `docs/nanocct-concept.md` in ocp-tessellate.
 
-**No OCP provider is declared.** The same `OCP` namespace is shipped by `cadquery_ocp`, `cadquery_ocp_novtk` and conda's `OCP`; naming one would break users of the other two. The leaf chooses. In practice OCP is always there — a viewer makes no sense without cadquery or build123d, and both pull a provider — so this is about the import graph, not about a bare install.
+**`__init__.py` imports nothing but the version.** A host imports the submodule it needs, so importing the package never loads the tessellator or an OCCT binding. That is also a detectable property rather than a promise: if the config merge or the transport contract could not import without geometry, the layer would have leaked and the import graph would say so.
+
+**No binding is declared.** Neither this package nor ocp-tessellate depends on one: the `OCP` namespace is shipped by `cadquery_ocp`, `cadquery_ocp_novtk` and conda's `OCP`, and nanocct is a binding of its own; naming one would break the users of the others. The leaf chooses. In practice a binding is always there — a viewer makes no sense without cadquery or build123d, and both pull one — so this is about the import graph, not about a bare install.
 
 **`websocket.py` is one implementation of `Comms`, not the contract.** ocp_vscode and ocp_viewer both talk to a viewer over the same protocol and both use it; build123d Studio sends length-prefixed binary frames over a local socket and will implement `Comms` directly. The port is instance state rather than a module global, so two clients in one process address two viewers, and discovery is lazy: reading the state file, probing what it finds and possibly asking the user which viewer they meant should not happen because somebody imported a module.
 

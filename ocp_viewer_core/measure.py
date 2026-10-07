@@ -2,7 +2,8 @@
 
 Answers the questions the viewer's measurement tools ask - the distance
 between two shapes, the properties of one - in the geometry kernel rather than
-in the renderer, which sees only triangles.
+in the renderer, which sees only triangles. The OCCT work is ocp_tessellate's
+(for OCP and nanocct objects alike); this module only reports it.
 """
 
 #
@@ -21,22 +22,18 @@ in the renderer, which sees only triangles.
 # limitations under the License.
 #
 
-from math import pi
+from math import pi, sqrt
 
-from OCP.BRep import BRep_Tool
-from OCP.BRepAdaptor import BRepAdaptor_Curve
-from OCP.BRepExtrema import BRepExtrema_DistShapeShape, BRepExtrema_SupportType
-from OCP.BRepGProp import BRepGProp_Face
-from OCP.BRepTools import BRepTools
-from OCP.GeomAPI import GeomAPI_ProjectPointOnSurf
-from OCP.gp import gp_Dir, gp_Pnt, gp_Vec
 from ocp_tessellate.ocp_utils import (
     BoundingBox,
+    angle_between,
     area,
     center_of_geometry,
     center_of_mass,
+    closest_directions,
     dist_shapes,
     downcast,
+    face_normal,
     get_curve,
     get_point,
     get_surface,
@@ -45,13 +42,14 @@ from ocp_tessellate.ocp_utils import (
     is_topods_compsolid,
     is_topods_edge,
     is_topods_face,
+    is_topods_shell,
     is_topods_solid,
     is_topods_vertex,
+    is_topods_wire,
     is_vector,
     length,
     position_at,
     tangent_at,
-    vertex,
     volume,
 )
 
@@ -61,8 +59,12 @@ def get_shape_type(shape):
         return "Vertex"
     elif is_topods_edge(shape):
         return "Edge"
+    elif is_topods_wire(shape):
+        return "Wire"
     elif is_topods_face(shape):
         return "Face"
+    elif is_topods_shell(shape):
+        return "Shell"
     elif is_topods_solid(shape):
         return "Solid"
     elif is_topods_compsolid(shape):
@@ -84,7 +86,9 @@ def get_geom_type(shape):
     elif is_topods_face(shape):
         return get_surface(shape).GetType().name.split("_")[-1]  # ty: ignore[unresolved-attribute]
     elif (
-        is_topods_solid(shape)
+        is_topods_wire(shape)
+        or is_topods_shell(shape)
+        or is_topods_solid(shape)
         or is_topods_compound(shape)
         or is_topods_compsolid(shape)
     ):
@@ -190,11 +194,10 @@ def get_properties(shape):
             sections.append(pos_section)
 
         meas_section = {"length": length(shape)}
-        xy_normal = gp_Dir(0, 0, 1)
         for i in [0, 1]:
             try:
                 _, tangent_dir = tangent_at(shape, i)
-                angle = abs(90 - tangent_dir.Angle(xy_normal) / pi * 180)
+                angle = abs(90 - angle_between(tangent_dir, (0, 0, 1)) / pi * 180)
                 meas_section[f"angle@{i} to XY"] = angle
             # An angle that cannot be computed is left out of the section
             # rather than failing the measurement.
@@ -259,18 +262,22 @@ def get_properties(shape):
 
         meas_section = {"area": area(shape)}
         try:
-            u0, u1, v0, v1 = BRepTools.UVBounds_s(shape)
-            pnt, normal = gp_Pnt(), gp_Vec()
-            BRepGProp_Face(shape).Normal(
-                (u0 + u1) / 2, (v0 + v1) / 2, pnt, normal
-            )
-            if normal.Magnitude() > 1e-10:
-                a = gp_Dir(normal).Angle(gp_Dir(0, 0, 1)) / pi * 180
+            normal = face_normal(shape)
+            if normal is not None:
+                a = angle_between(normal, (0, 0, 1)) / pi * 180
                 meas_section["angle to XY"] = a
         # As above: the angle is one line of a report, not the report.
         except Exception:  # noqa: BLE001, S110
             pass
         sections.append(meas_section)
+
+    elif is_topods_wire(shape):
+        sections.append({"length": length(shape)})
+        refpoint = center_of_mass(shape)
+
+    elif is_topods_shell(shape):
+        sections.append({"area": area(shape)})
+        refpoint = center_of_mass(shape)
 
     elif (
         is_topods_solid(shape)
@@ -303,6 +310,11 @@ def get_properties(shape):
 
 
 def get_center(shape):
+    """The center of a shape as (x, y, z): of a circle, ellipse, hyperbola or
+    parabola its location, of a cylinder, cone, sphere, torus or revolution
+    surface the location of its axis, else the middle of an edge or the center
+    of mass (of a wire, shell, solid, compsolid or compound by its highest
+    dimension, see ocp_tessellate's center_of_mass)."""
     shape_type = get_shape_type(shape)
     geom_type = get_geom_type(shape)
 
@@ -353,16 +365,18 @@ def get_center(shape):
         else:
             center = center_of_mass(shape)
 
-    elif shape_type == "Solid":
+    elif shape_type in ("Wire", "Shell", "Solid", "CompSolid", "Compound"):
         center = center_of_mass(shape)
 
     else:
-        print(shape_type, shape)
+        raise ValueError(f"no center for a shape of type {shape_type}: {shape}")
 
-    if is_topods_vertex(center):
+    # coordinates, not a vertex: a vertex built from a tuple would be in the
+    # default binding, not necessarily in the shape's (center_of_mass returns
+    # a tuple)
+    if isinstance(center, tuple):
         return center
-    else:
-        return vertex(center)
+    return get_point(center)
 
 
 def calc_distance(shape1, shape2, center=False):
@@ -372,11 +386,13 @@ def calc_distance(shape1, shape2, center=False):
     if center:
         p1 = get_center(shape1)
         p2 = get_center(shape2)
-        dist, p1, p2 = dist_shapes(p1, p2)
+        # the distance of two points, as BRepExtrema computes it for two vertices
+        dx, dy, dz = p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]
+        dist = sqrt(dx * dx + dy * dy + dz * dz)
     else:
         dist, p1, p2 = dist_shapes(shape1, shape2)
-    p1 = get_point(p1)
-    p2 = get_point(p2)
+        p1 = get_point(p1)
+        p2 = get_point(p2)
     xdist = abs(p2[0] - p1[0])
     ydist = abs(p2[1] - p1[1])
     zdist = abs(p2[2] - p1[2])
@@ -391,79 +407,15 @@ def calc_distance(shape1, shape2, center=False):
     }
 
 
-def _edge_tangent_at(edge, extrema, shape_index):
-    """Get tangent direction on an edge at an extrema solution point."""
-    if shape_index == 1:
-        support_type = extrema.SupportTypeShape1(1)
-    else:
-        support_type = extrema.SupportTypeShape2(1)
-
-    curve = BRepAdaptor_Curve(edge)
-
-    if support_type == BRepExtrema_SupportType.BRepExtrema_IsOnEdge:
-        if shape_index == 1:
-            param = extrema.ParOnEdgeS1(1)[0]
-        else:
-            param = extrema.ParOnEdgeS2(1)[0]
-    elif support_type == BRepExtrema_SupportType.BRepExtrema_IsVertex:
-        # Determine closest endpoint
-        if shape_index == 1:
-            pt = extrema.PointOnShape1(1)
-        else:
-            pt = extrema.PointOnShape2(1)
-        d_first = pt.Distance(curve.Value(curve.FirstParameter()))
-        d_last = pt.Distance(curve.Value(curve.LastParameter()))
-        param = curve.FirstParameter() if d_first <= d_last else curve.LastParameter()
-    else:
-        return None, None
-
-    pnt = gp_Pnt()
-    vec = gp_Vec()
-    curve.D1(param, pnt, vec)
-    if vec.Magnitude() < 1e-10:
-        return None, None
-    if get_geom_type(edge) == "Line":
-        label = "line"
-    else:
-        label = f"tangent at P{shape_index}"
-    return gp_Dir(vec), label
-
-
-def _face_normal_at(face, extrema, shape_index):
-    """Get surface normal on a face at an extrema solution point."""
-    if shape_index == 1:
-        support_type = extrema.SupportTypeShape1(1)
-    else:
-        support_type = extrema.SupportTypeShape2(1)
-
-    if support_type == BRepExtrema_SupportType.BRepExtrema_IsInFace:
-        if shape_index == 1:
-            uv = extrema.ParOnFaceS1(1)
-        else:
-            uv = extrema.ParOnFaceS2(1)
-        u, v = uv[0], uv[1]
-    else:
-        # Project the closest point onto the surface to get UV
-        if shape_index == 1:
-            pt = extrema.PointOnShape1(1)
-        else:
-            pt = extrema.PointOnShape2(1)
-        surface = BRep_Tool.Surface_s(face)
-        proj = GeomAPI_ProjectPointOnSurf(pt, surface)
-        if proj.NbPoints() == 0:
-            return None, None
-        u, v = proj.Parameters(1)
-
-    pnt = gp_Pnt()
-    normal = gp_Vec()
-    BRepGProp_Face(face).Normal(u, v, pnt, normal)
-    if normal.Magnitude() < 1e-10:
-        return None, None
-    if get_geom_type(face) == "Plane":
-        label = "face normal"
-    else:
-        label = f"surface normal at P{shape_index}"
-    return gp_Dir(normal), label
+def _direction_label(shape, shape_index):
+    """What the direction of a shape in calc_angle is: a tangent or a normal."""
+    if is_topods_edge(shape):
+        if get_geom_type(shape) == "Line":
+            return "line"
+        return f"tangent at P{shape_index}"
+    if get_geom_type(shape) == "Plane":
+        return "face normal"
+    return f"surface normal at P{shape_index}"
 
 
 def calc_angle(shape1, shape2):
@@ -478,24 +430,15 @@ def calc_angle(shape1, shape2):
     if not (is_edge1 or is_face1) or not (is_edge2 or is_face2):
         return None
 
-    extrema = BRepExtrema_DistShapeShape(shape1, shape2)
-    if not extrema.IsDone() or extrema.NbSolution() == 0:
+    # tangents of edges, normals of faces, at the closest points
+    directions = closest_directions(shape1, shape2)
+    if directions is None:
         return None
+    dir1, dir2 = directions
+    info1 = _direction_label(shape1, 1)
+    info2 = _direction_label(shape2, 2)
 
-    if is_edge1:
-        dir1, info1 = _edge_tangent_at(shape1, extrema, 1)
-    else:
-        dir1, info1 = _face_normal_at(shape1, extrema, 1)
-
-    if is_edge2:
-        dir2, info2 = _edge_tangent_at(shape2, extrema, 2)
-    else:
-        dir2, info2 = _face_normal_at(shape2, extrema, 2)
-
-    if dir1 is None or dir2 is None:
-        return None
-
-    angle = dir1.Angle(dir2) / pi * 180
+    angle = angle_between(dir1, dir2) / pi * 180
 
     # If exactly one shape is an edge (tangent vs normal), convert to
     # edge-to-surface angle

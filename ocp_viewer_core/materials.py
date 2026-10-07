@@ -6,17 +6,17 @@ and double-sidedness. cadquery's `Material` wraps one in `wrapped_vis`, and any
 STEP/glTF round trip through XCAF produces them. The viewer side speaks
 `PbrProperties`. These two functions translate between the paradigms so a
 material can enter the show pipeline from an OCCT document and a catalogue
-material can be written back into one.
+material can be written back into one. The OCCT side is ocp_tessellate's
+(`vis_material_values`, `make_vis_material`, for OCP and nanocct alike).
 
 Both directions are scalar-only and lossy where the vocabularies differ:
 `XCAFDoc_VisMaterialPBR` has no clearcoat, sheen, transmission or texture maps,
 so those `PbrProperties` fields do not survive the trip into OCCT.
 
 Color spaces: `PbrValues.color` is sRGB ratios, `PbrValues.emissive` is linear -
-per that class's docstring. `Quantity_Color` stores linear RGB, converting at
-the boundary via `Quantity_TOC_sRGB`; `EmissiveFactor` is a linear `gp_Vec3f`,
-so it crosses without conversion - where the binding has it: cadquery-ocp 8
-exposes neither, and the emissive term is skipped there.
+per that class's docstring - and so are the values ocp_tessellate reads and
+writes. The emissive factor exists in OCP 7.9 and nanocct; cadquery-ocp 8 does
+not bind it, and the emissive term is skipped there.
 """
 
 #
@@ -35,17 +35,7 @@ exposes neither, and the emissive term is skipped there.
 # limitations under the License.
 #
 
-try:
-    from OCP.gp import gp_Vec3f
-except ImportError:
-    # cadquery-ocp 8 binds neither `gp_Vec3f` nor the PBR material's
-    # `EmissiveFactor`, so under it the emissive term cannot cross in either
-    # direction. Everything else does.
-    gp_Vec3f = None
-from OCP.Graphic3d import Graphic3d_AlphaMode
-from OCP.Quantity import Quantity_Color, Quantity_ColorRGBA, Quantity_TypeOfColor
-from OCP.TCollection import TCollection_HAsciiString
-from OCP.XCAFDoc import XCAFDoc_VisMaterial, XCAFDoc_VisMaterialPBR
+from ocp_tessellate.ocp_utils import make_vis_material, vis_material_values
 from threejs_materials import PbrProperties, PbrValues
 
 __all__ = ["pbr_to_vis_material", "vis_material_to_pbr"]
@@ -67,43 +57,34 @@ def vis_material_to_pbr(vis_material, name=None):
 
     @return: A `PbrProperties`, or None if the material is empty
     """
-    if vis_material.IsEmpty():
+    occt = vis_material_values(vis_material)
+    if occt is None:
         return None
 
-    if vis_material.HasPbrMaterial():
-        pbr = vis_material.PbrMaterial()
-    else:
-        pbr = vis_material.ConvertToPbrMaterial()
-
     if name is None:
-        raw_name = vis_material.RawName()
-        if raw_name is not None:
-            name = raw_name.ToCString()
+        name = occt["name"]
     if name is None or name == "":
         name = "material"
 
-    srgb = pbr.BaseColor.GetRGB().Values(Quantity_TypeOfColor.Quantity_TOC_sRGB)
-    alpha = pbr.BaseColor.Alpha()
-
     values = PbrValues(
-        color=list(srgb),
-        metalness=pbr.Metallic,
-        roughness=pbr.Roughness,
-        ior=pbr.RefractionIndex,
+        color=list(occt["color"]),
+        metalness=occt["metallic"],
+        roughness=occt["roughness"],
+        ior=occt["ior"],
     )
 
-    if gp_Vec3f is not None:
-        emissive = pbr.EmissiveFactor
-        if not (emissive.r() == 0.0 and emissive.g() == 0.0 and emissive.b() == 0.0):
-            values.emissive = [emissive.r(), emissive.g(), emissive.b()]
+    emissive = occt["emissive"]
+    if emissive is not None and not (emissive[0] == 0.0 and emissive[1] == 0.0 and emissive[2] == 0.0):
+        values.emissive = list(emissive)
 
-    if vis_material.AlphaMode() == Graphic3d_AlphaMode.Graphic3d_AlphaMode_Mask:
-        values.alpha_test = vis_material.AlphaCutOff()
+    if occt["alpha_mode"] == "Mask":
+        values.alpha_test = occt["alpha_cutoff"]
+    alpha = occt["alpha"]
     if alpha < 1.0:
         values.opacity = alpha
         values.transparent = True
 
-    if vis_material.IsDoubleSided() is True:
+    if occt["double_sided"] is True:
         values.side = THREEJS_DOUBLE_SIDE
 
     return PbrProperties(
@@ -132,54 +113,43 @@ def pbr_to_vis_material(pbr_properties):
     @return: A new `XCAFDoc_VisMaterial` with the PBR block set
     """
     values = pbr_properties.values
-    pbr = XCAFDoc_VisMaterialPBR()
 
     opacity = values.opacity
     if opacity is None:
         opacity = 1.0
 
+    color = None
     if values.color is not None:
-        rgb = Quantity_Color(
-            values.color[0],
-            values.color[1],
-            values.color[2],
-            Quantity_TypeOfColor.Quantity_TOC_sRGB,
-        )
-        pbr.BaseColor = Quantity_ColorRGBA(rgb, opacity)
-    else:
-        base_color = pbr.BaseColor
-        base_color.SetAlpha(opacity)
-        pbr.BaseColor = base_color
+        color = (values.color[0], values.color[1], values.color[2])
 
-    if values.metalness is not None:
-        pbr.Metallic = values.metalness
-    if values.roughness is not None:
-        pbr.Roughness = values.roughness
-    if values.ior is not None:
-        pbr.RefractionIndex = values.ior
-
-    if values.emissive is not None and gp_Vec3f is not None:
+    emissive = None
+    if values.emissive is not None:
         intensity = values.emissive_intensity
         if intensity is None:
             intensity = 1.0
-        pbr.EmissiveFactor = gp_Vec3f(
+        emissive = (
             values.emissive[0] * intensity,
             values.emissive[1] * intensity,
             values.emissive[2] * intensity,
         )
 
-    vis_material = XCAFDoc_VisMaterial()
-    vis_material.SetPbrMaterial(pbr)
-    vis_material.SetRawName(TCollection_HAsciiString(pbr_properties.name))
-
+    alpha_mode = None
+    alpha_cutoff = None
     if values.alpha_test is not None:
-        vis_material.SetAlphaMode(
-            Graphic3d_AlphaMode.Graphic3d_AlphaMode_Mask, values.alpha_test
-        )
+        alpha_mode = "Mask"
+        alpha_cutoff = values.alpha_test
     elif values.transparent is True or opacity < 1.0:
-        vis_material.SetAlphaMode(Graphic3d_AlphaMode.Graphic3d_AlphaMode_Blend)
+        alpha_mode = "Blend"
 
-    if values.side == THREEJS_DOUBLE_SIDE:
-        vis_material.SetDoubleSided(True)
-
-    return vis_material
+    return make_vis_material(
+        pbr_properties.name,
+        color=color,
+        alpha=opacity,
+        metallic=values.metalness,
+        roughness=values.roughness,
+        ior=values.ior,
+        emissive=emissive,
+        alpha_mode=alpha_mode,
+        alpha_cutoff=alpha_cutoff,
+        double_sided=values.side == THREEJS_DOUBLE_SIDE,
+    )

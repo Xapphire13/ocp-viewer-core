@@ -25,10 +25,11 @@ both are dropped with a message, never a crash.
 # limitations under the License.
 #
 
+import importlib
+import importlib.util
+
 import pytest
-from OCP.Graphic3d import Graphic3d_AlphaMode
-from OCP.Quantity import Quantity_Color, Quantity_TypeOfColor
-from OCP.XCAFDoc import XCAFDoc_VisMaterial, XCAFDoc_VisMaterialCommon
+from ocp_tessellate.ocp_utils import make_vis_material, vis_material_values
 from threejs_materials import PbrProperties, PbrValues
 
 from ocp_viewer_core.materials import (
@@ -39,6 +40,18 @@ from ocp_viewer_core.materials import (
 from ocp_viewer_core.show import (
     _extract_material_objects,
     is_cadquery_material,
+)
+
+# the binding pbr_to_vis_material builds in when nothing else decides: OCP if
+# it is installed, else nanocct (ocp_tessellate's default)
+BINDING = "OCP" if importlib.util.find_spec("OCP") is not None else "nanocct"
+XCAFDoc = importlib.import_module(f"{BINDING}.XCAFDoc")
+Quantity = importlib.import_module(f"{BINDING}.Quantity")
+
+# cadquery-ocp 8 binds no emissive factor; OCP 7.9 and nanocct do
+HAS_EMISSIVE = vis_material_values(make_vis_material("probe", emissive=(1.0, 0.0, 0.0)))["emissive"] is not None
+needs_emissive = pytest.mark.skipif(
+    HAS_EMISSIVE is False, reason=f"{BINDING} binds no XCAFDoc_VisMaterialPBR.EmissiveFactor"
 )
 
 
@@ -57,7 +70,7 @@ def make_pbr(name="Gold", **values):
 
 
 def test_empty_vis_material_is_none():
-    assert vis_material_to_pbr(XCAFDoc_VisMaterial()) is None
+    assert vis_material_to_pbr(XCAFDoc.XCAFDoc_VisMaterial()) is None
 
 
 def test_pbr_roundtrip_scalars():
@@ -76,6 +89,7 @@ def test_pbr_roundtrip_scalars():
     assert result.values.transparent is None
 
 
+@needs_emissive
 def test_pbr_roundtrip_emissive_is_linear():
     original = make_pbr(color=[0.5, 0.5, 0.5], emissive=[0.1, 0.2, 0.3])
     result = vis_material_to_pbr(pbr_to_vis_material(original))
@@ -87,7 +101,7 @@ def test_pbr_roundtrip_opacity_and_alpha_mode():
     original = make_pbr(color=[1.0, 0.0, 0.0], opacity=0.5)
     vis = pbr_to_vis_material(original)
 
-    assert vis.AlphaMode() == Graphic3d_AlphaMode.Graphic3d_AlphaMode_Blend
+    assert vis_material_values(vis)["alpha_mode"] == "Blend"
 
     result = vis_material_to_pbr(vis)
     assert result.values.opacity == pytest.approx(0.5, abs=1e-6)
@@ -98,7 +112,7 @@ def test_pbr_roundtrip_alpha_test():
     original = make_pbr(color=[1.0, 1.0, 1.0], alpha_test=0.25)
     vis = pbr_to_vis_material(original)
 
-    assert vis.AlphaMode() == Graphic3d_AlphaMode.Graphic3d_AlphaMode_Mask
+    assert vis_material_values(vis)["alpha_mode"] == "Mask"
 
     result = vis_material_to_pbr(vis)
     assert result.values.alpha_test == pytest.approx(0.25, abs=1e-6)
@@ -120,12 +134,12 @@ def test_name_from_raw_name_and_override():
 
 
 def test_common_material_converts_to_pbr():
-    common = XCAFDoc_VisMaterialCommon()
-    common.DiffuseColor = Quantity_Color(
-        0.5, 0.5, 0.5, Quantity_TypeOfColor.Quantity_TOC_sRGB
+    common = XCAFDoc.XCAFDoc_VisMaterialCommon()
+    common.DiffuseColor = Quantity.Quantity_Color(
+        0.5, 0.5, 0.5, Quantity.Quantity_TypeOfColor.Quantity_TOC_sRGB
     )
     common.IsDefined = True
-    vis = XCAFDoc_VisMaterial()
+    vis = XCAFDoc.XCAFDoc_VisMaterial()
     vis.SetCommonMaterial(common)
 
     result = vis_material_to_pbr(vis, name="common")
@@ -134,6 +148,7 @@ def test_common_material_converts_to_pbr():
     assert result.values.roughness is not None
 
 
+@needs_emissive
 def test_emissive_intensity_is_folded_in():
     original = make_pbr(
         color=[1.0, 1.0, 1.0], emissive=[0.5, 0.5, 0.5], emissive_intensity=2.0
@@ -162,7 +177,7 @@ class StubNode:
 
 
 def test_is_cadquery_material():
-    stub = StubCadqueryMaterial("Gold", XCAFDoc_VisMaterial())
+    stub = StubCadqueryMaterial("Gold", XCAFDoc.XCAFDoc_VisMaterial())
     assert is_cadquery_material(stub) is True
     assert is_cadquery_material("Gold") is False
     assert is_cadquery_material(make_pbr()) is False
@@ -180,7 +195,7 @@ def test_cadquery_material_with_pbr_is_extracted():
 
 
 def test_empty_cadquery_material_is_dropped(capsys):
-    node = StubNode(StubCadqueryMaterial("Gold", XCAFDoc_VisMaterial()))
+    node = StubNode(StubCadqueryMaterial("Gold", XCAFDoc.XCAFDoc_VisMaterial()))
 
     extracted = _extract_material_objects(node)
 
