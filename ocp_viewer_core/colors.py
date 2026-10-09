@@ -349,19 +349,26 @@ class SegmentedColorMap(BaseColorMap):
 
 
 class GoldenRatioColormap(BaseColorMap):
-    """A colormap based on the golden ratio"""
+    """A colormap based on the golden ratio
 
-    def __init__(self, mapper, alpha=1.0, reverse=False, **params):
+    `hue_offset` shifts where the walk starts, as a fraction of the colormap
+    (0 to 1, 0.5 is halfway round), and every later color by the same amount.
+    For "hsv" that is the hue; for a matplotlib colormap the position along it.
+    It is applied before `reverse`, so a reversed walk starts at 1 - hue_offset.
+    """
+
+    def __init__(self, mapper, alpha=1.0, reverse=False, hue_offset=0.0, **params):
         super().__init__()
 
         self.mapper = mapper
         self.params = params
         self.alpha = alpha
         self.reverse = reverse
+        self.hue_offset = hue_offset
 
     def __next__(self):
         phi_inv = 2 / (1 + 5**0.5)
-        t = (phi_inv * self.index) % 1
+        t = (self.hue_offset + phi_inv * self.index) % 1
         if self.reverse:
             t = 1 - t
         color = self.mapper(t, **self.params)
@@ -460,14 +467,24 @@ class ColorMap:
         return ListedColorMap(colormaps["tab20c"], alpha=alpha, reverse=reverse)
 
     @staticmethod
-    def golden_ratio(colormap="hsv", alpha=1.0, reverse=False):
-        """Create a colormap based on the golden ratio"""
+    def golden_ratio(colormap="hsv", alpha=1.0, reverse=False, hue_offset=0.0):
+        """Create a colormap based on the golden ratio
+
+        `hue_offset` shifts the first color and every later one, as a fraction
+        of the colormap (0 to 1); 0 starts where it always did.
+        """
         if colormap == "hsv":
-            return GoldenRatioColormap(hsv_mapper, alpha=alpha, reverse=reverse)
+            return GoldenRatioColormap(
+                hsv_mapper, alpha=alpha, reverse=reverse, hue_offset=hue_offset
+            )
         elif colormap.startswith("mpl"):
             _, name = colormap.split(":")
             return GoldenRatioColormap(
-                matplotlib_mapper, alpha=alpha, reverse=reverse, name=name
+                matplotlib_mapper,
+                alpha=alpha,
+                reverse=reverse,
+                hue_offset=hue_offset,
+                name=name,
             )
 
     @staticmethod
