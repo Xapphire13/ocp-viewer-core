@@ -54,6 +54,17 @@ from ocp_tessellate.ocp_utils import (
 )
 
 
+def with_supplement(angle):
+    """An angle in degrees and its supplement, as the panel shows them: "60.000 (120.000)".
+
+    Both angles two directions form, as one string: the panel prints a string
+    as it is, where a number gets a row of its own. Clamped, so an angle a
+    rounding error past 180 does not show its supplement as -0.000
+    (vscode-ocp-cad-viewer issue 236).
+    """
+    return f"{angle:.3f} ({max(180 - angle, 0.0):.3f})"
+
+
 def get_shape_type(shape):
     if is_topods_vertex(shape) or is_vector(shape):
         return "Vertex"
@@ -198,7 +209,7 @@ def get_properties(shape):
             try:
                 _, tangent_dir = tangent_at(shape, i)
                 angle = abs(90 - angle_between(tangent_dir, (0, 0, 1)) / pi * 180)
-                meas_section[f"angle@{i} to XY"] = angle
+                meas_section[f"angle@{i} to XY"] = with_supplement(angle)
             # An angle that cannot be computed is left out of the section
             # rather than failing the measurement.
             except Exception:  # noqa: BLE001, S110
@@ -265,7 +276,7 @@ def get_properties(shape):
             normal = face_normal(shape)
             if normal is not None:
                 a = angle_between(normal, (0, 0, 1)) / pi * 180
-                meas_section["angle to XY"] = a
+                meas_section["angle to XY"] = with_supplement(a)
         # As above: the angle is one line of a report, not the report.
         except Exception:  # noqa: BLE001, S110
             pass
@@ -483,12 +494,7 @@ def get_distance(shape1, shape2, center):
     angle = calc_angle(shape1, shape2)
 
     if angle is not None:
-        # Both angles the two shapes form, the measured one and its supplement,
-        # as one string: the panel prints a string as it is, where a number
-        # gets a row of its own. Clamped, so an angle a rounding error past
-        # 180 does not show its supplement as -0.000.
-        value = angle["angle"]
-        angle_section = {"angle": f"{value:.3f} ({max(180 - value, 0.0):.3f})"}
+        angle_section = {"angle": with_supplement(angle["angle"])}
         angle_section["reference 1"] = angle["reference 1"]
         if "direction 1" in angle:
             angle_section["direction 1"] = angle["direction 1"]
