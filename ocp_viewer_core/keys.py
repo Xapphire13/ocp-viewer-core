@@ -193,6 +193,7 @@ CONTROL = {
     "reset_camera": None,  # applied by code (setView)
     "show_parent": None,
     "show_locals": None,
+    "python_enumeration": None,
     "timeit": "timeit",
 }
 

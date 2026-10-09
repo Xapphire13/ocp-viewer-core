@@ -611,6 +611,9 @@ class Viewer(Generic[H]):
                 show_locals=kwargs.get(
                     "show_locals", changed_config.get("show_locals")
                 ),
+                python_enumeration=kwargs.get(
+                    "python_enumeration", changed_config.get("python_enumeration")
+                ),
                 progress=progress,
                 debug=kwargs.get("debug", False),
             )
@@ -642,6 +645,11 @@ class Viewer(Generic[H]):
                     # do not keep the position and rotation of the splash screen
                     continue
                 params[k] = v
+
+        # ocp-tessellate's naming scheme, consumed by `to_ocpgroup` above. The
+        # names it produced are in the model; the flag itself is nothing the
+        # viewer is told.
+        params.pop("python_enumeration", None)
 
         params["_splash"] = False  # after the first show, _splash is False
 
@@ -924,6 +932,7 @@ class Viewer(Generic[H]):
         show_parent=None,
         show_locals=None,
         show_sketch_local=None,  # DEPRECATED
+        python_enumeration=None,
         helper_scale=None,
         studio_environment=None,
         studio_env_intensity=None,
@@ -1072,6 +1081,8 @@ class Viewer(Generic[H]):
             show_parent:             Render parent of faces, edges or vertices as wireframe (default=False)
             show_locals:             In build123d show local part/sketch/line in addition to the relocated
                                      object (default=True)
+            python_enumeration:      Number repeated names from 0 like Python indices, Solid(0), Solid(1), ...
+                                     instead of Solid, Solid(2), ... - changes the tree paths (default=False)
             helper_scale:            Scale of rendered helpers (locations, axis, mates for MAssemblies) (default=1)
                                      If it is a float < 1, used the max distance to nested bounding box times
                                      helper_scale to determine the absolut value of it
@@ -1339,6 +1350,7 @@ class Viewer(Generic[H]):
         show_parent=None,
         show_locals=None,
         show_sketch_local=None,  # DEPRECATED
+        python_enumeration=None,
         helper_scale=None,
         studio_environment=None,
         studio_env_intensity=None,
@@ -1493,6 +1505,8 @@ class Viewer(Generic[H]):
             show_parent:             Render parent of faces, edges or vertices as wireframe (default=False)
             show_locals:             In build123d show local part/sketch/line in addition to the relocated
                                      object (default=True)
+            python_enumeration:      Number repeated names from 0 like Python indices, Solid(0), Solid(1), ...
+                                     instead of Solid, Solid(2), ... - changes the tree paths (default=False)
             helper_scale:            Scale of rendered helpers (locations, axis, mates for MAssemblies) (default=1)
                                      If it is a float < 1, used the max distance to nested bounding box times
                                      helper_scale to determine the absolut value of it
@@ -1749,6 +1763,7 @@ class Viewer(Generic[H]):
         show_parent=None,
         show_locals=None,
         show_sketch_local=None,  # DEPRECATED
+        python_enumeration=None,
         helper_scale=None,
         studio_environment=None,
         studio_env_intensity=None,
@@ -1880,6 +1895,8 @@ class Viewer(Generic[H]):
             show_parent:             Render parent of faces, edges or vertices as wireframe (default=False)
             show_locals:             In build123d show local part/sketch/line in addition to the relocated
                                      object (default=True)
+            python_enumeration:      Number repeated names from 0 like Python indices, Solid(0), Solid(1), ...
+                                     instead of Solid, Solid(2), ... - changes the tree paths (default=False)
             helper_scale:            Scale of rendered helpers (locations, axis, mates for MAssemblies) (default=1)
                                      If it is a float < 1, used the max distance to nested bounding box times
                                      helper_scale to determine the absolut value of it

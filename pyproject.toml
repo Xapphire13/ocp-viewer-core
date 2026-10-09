@@ -47,7 +47,7 @@ classifiers = [
 # package they cannot execute. The two that can - ocp_viewer and ocp_vscode -
 # ask for `ocp-viewer-core[cli]`.
 dependencies = [
-    "ocp-tessellate>=4.0.0,<4.1.0",
+    "ocp-tessellate>=3.6.0,<3.7.0",
     "orjson",
     "pillow",
     "threejs-materials>=1.2.0,<1.3.0",

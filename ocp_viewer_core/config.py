@@ -223,6 +223,11 @@ DEFAULT_DEFAULTS = {
     "helper_scale": 1.0,
     "show_parent": False,
     "show_locals": True,
+    # Off, because the names are tree paths and paths are an API - animation
+    # tracks, saved states and selections address objects by them. Every host
+    # stores it as False too, so the opt-in is the user's (vscode-ocp-cad-viewer
+    # issue 242).
+    "python_enumeration": False,
     "timeit": False,
     "collapse": Collapse.ROOT,
     "debug": False,
@@ -667,6 +672,7 @@ class Config:
         show_parent=None,
         show_locals=None,
         show_sketch_local=None,  # DEPRECATED
+        python_enumeration=None,
         helper_scale=None,
         studio_environment=None,
         studio_env_intensity=None,
@@ -789,6 +795,8 @@ class Config:
             show_parent:        Render parent of faces, edges or vertices as wireframe (default=False)
             show_locals:        In build123d show local part/sketch/line in addition to the relocated
                                 object (default=True)
+            python_enumeration: Number repeated names from 0 like Python indices, Solid(0), Solid(1), ...
+                                instead of Solid, Solid(2), ... - changes the tree paths (default=False)
             helper_scale:       Scale of rendered helpers (locations, axis, mates for MAssemblies) (default=1)
                                 If it is a float < 1, used the max distance to nested bounding box times
                                 helper_scale to determine the absolut value of it
