@@ -483,7 +483,12 @@ def get_distance(shape1, shape2, center):
     angle = calc_angle(shape1, shape2)
 
     if angle is not None:
-        angle_section = {"angle": angle["angle"]}
+        # Both angles the two shapes form, the measured one and its supplement,
+        # as one string: the panel prints a string as it is, where a number
+        # gets a row of its own. Clamped, so an angle a rounding error past
+        # 180 does not show its supplement as -0.000.
+        value = angle["angle"]
+        angle_section = {"angle": f"{value:.3f} ({max(180 - value, 0.0):.3f})"}
         angle_section["reference 1"] = angle["reference 1"]
         if "direction 1" in angle:
             angle_section["direction 1"] = angle["direction 1"]
