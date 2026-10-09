@@ -245,7 +245,10 @@ def matplotlib_mapper(t, name):
 
     colormap = mpl.colormaps.get(name)
 
-    if name is None:
+    # The lookup's answer, not the argument: `get` returns None for a name
+    # matplotlib does not know, which would otherwise be reported below as
+    # "not a linear segmented colormap".
+    if colormap is None:
         raise ValueError(f"No colormap named '{name}' in matplotlib")
     if not isinstance(colormap, mpl.colors.LinearSegmentedColormap):
         # ValueError rather than TypeError: the caller passed a name, and the

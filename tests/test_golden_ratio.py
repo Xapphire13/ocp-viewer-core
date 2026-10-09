@@ -55,3 +55,16 @@ def test_a_matplotlib_colormap_is_shifted_along_its_length():
     # jet, because matplotlib_mapper takes linear segmented colormaps only.
     colormap = ColorMap.golden_ratio("mpl:jet", alpha=0.5, hue_offset=0.4)
     assert _walk(colormap) == _expected(matplotlib_mapper, ts, alpha=0.5, name="jet")
+
+
+@pytest.mark.parametrize("name", ["nonexistent", None])
+def test_an_unknown_matplotlib_colormap_is_named_as_unknown(name):
+    pytest.importorskip("matplotlib")
+    with pytest.raises(ValueError, match=f"No colormap named '{name}' in matplotlib"):
+        matplotlib_mapper(0.5, name)
+
+
+def test_a_listed_matplotlib_colormap_is_still_refused_as_such():
+    pytest.importorskip("matplotlib")
+    with pytest.raises(ValueError, match="'viridis' is not a linear segmented colormap"):
+        matplotlib_mapper(0.5, "viridis")
