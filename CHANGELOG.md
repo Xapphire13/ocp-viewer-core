@@ -4,7 +4,8 @@ Since 1.0.2 the Python and JavaScript halves version separately on the patch lev
 
 ## JavaScript v1.1.0 (unreleased)
 
-- No change of its own: the minor follows the Python half, because major.minor is the contract between the halves (`Development.md`)
+- Requires three-cad-viewer 5.1: the peer range is `>=5.1.0 <5.2.0` (was `>=5.0.3 <5.1.0`). The minor also follows the Python half, because major.minor is the contract between the halves (`Development.md`)
+- `copiedPoint`, three-cad-viewer 5.1's notification for the point Ctrl/Cmd-C copied, is an event key: it reaches the host with the change that carried it and is not kept in the status snapshot
 
 ## Python v1.1.0 (unreleased)
 

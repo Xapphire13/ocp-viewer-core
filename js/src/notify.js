@@ -45,6 +45,9 @@ export const EVENT_KEYS = new Set([
   "lastPick",
   "activeTool",
   "relative_time",
+  // three-cad-viewer 5.1: the point Ctrl/Cmd-C copied, for hosts whose page
+  // cannot reach the clipboard. A copy, not a property of the viewer.
+  "copiedPoint",
 ]);
 
 /**
