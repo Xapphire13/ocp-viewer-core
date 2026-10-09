@@ -2080,11 +2080,22 @@ class Viewer(Generic[H]):
             self.show_clear()
         return None
 
-    def save_screenshot(self, filename, port=None, polling=True, progress_only=False):
+    def save_screenshot(self, filename, port=None, polling=True, progress_only=False, timeout_s=2):
         """Save a screenshot of the current view
 
         `port` is a host keyword like any other: it is handed to the transport
         for the length of this call and means whatever that host makes of it.
+
+        Parameters:
+            filename:       The PNG file to write; a relative path is taken from the
+                            current working directory
+            port:           The port of the viewer to ask, for hosts that address viewers
+                            by port (default=None, the host's own choice)
+            polling:        Wait until the file has been written (default=True)
+            progress_only:  While polling, print "." instead of the file name when the
+                            file arrives (default=False)
+            timeout_s:      While polling, how many seconds to wait for the file before
+                            giving up with a warning; fractions are allowed (default=2)
         """
         if not filename.startswith(os.sep):
             prefix = pathlib.Path(".").absolute()
@@ -2101,16 +2112,17 @@ class Viewer(Generic[H]):
             self.config.session.clear()
 
         if polling:
-            done = False
-            for i in range(20):
+            # A deadline rather than a count of 0.1 s sleeps, so a fractional
+            # timeout_s works and the time spent in stat() counts too.
+            deadline = time.monotonic() + timeout_s
+            while True:
                 if p.exists() and p.stat().st_mtime > mtime:
                     if progress_only:
                         print(".", end="")
                     else:
                         print("Screenshot saved to ", full_path)
-                    done = True
+                    break
+                if time.monotonic() >= deadline:
+                    print(f"Warning: Screenshot not found in {timeout_s} seconds, aborting")
                     break
                 time.sleep(0.1)
-
-            if not done:
-                print("Warning: Screenshot not found in 2 seconds, aborting")
