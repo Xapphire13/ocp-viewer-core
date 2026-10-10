@@ -42,9 +42,9 @@ from ocp_viewer_core.show import (
     is_cadquery_material,
 )
 
-# the binding pbr_to_vis_material builds in when nothing else decides: OCP if
-# it is installed, else nanocct (ocp_tessellate's default)
-BINDING = "OCP" if importlib.util.find_spec("OCP") is not None else "nanocct"
+# the binding pbr_to_vis_material builds in when nothing else decides:
+# nanocct if it is installed, else OCP (ocp_tessellate's rule)
+BINDING = "nanocct" if importlib.util.find_spec("nanocct") is not None else "OCP"
 XCAFDoc = importlib.import_module(f"{BINDING}.XCAFDoc")
 Quantity = importlib.import_module(f"{BINDING}.Quantity")
 
