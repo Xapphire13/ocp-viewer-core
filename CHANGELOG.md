@@ -6,6 +6,7 @@ Since 1.0.2 the Python and JavaScript halves version separately on the patch lev
 
 - Requires three-cad-viewer 5.1: the peer range is `>=5.1.0 <5.2.0` (was `>=5.0.3 <5.1.0`). The minor also follows the Python half, because major.minor is the contract between the halves (`Development.md`)
 - `copiedPoint`, three-cad-viewer 5.1's notification for the point Ctrl/Cmd-C copied, is an event key: it reaches the host with the change that carried it and is not kept in the status snapshot
+- A page sized from the window leaves the container's own offset free above and below it: the standalone page keeps the browser's 8px body margin, and the canvas ended 8px under the window edge, cutting the status line at its bottom (hover readout, copied point). Hosts whose page has no body margin (VS Code) or that pass `getSize` (build123d Studio) are unchanged
 
 ## Python v1.1.0 (unreleased)
 

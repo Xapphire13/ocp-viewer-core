@@ -237,9 +237,21 @@ export function createPage({
         if (getSize != null) {
             return getSize();
         }
+        // The window, less the container's own offset in it - a page's body
+        // margin - above it and, for the same margin, below it. The chrome is
+        // measured from the container's top, so an offset of the container
+        // itself was counted nowhere: the standalone page keeps the browser's
+        // 8px body margin, and its canvas ended 8px under the window edge,
+        // cutting the status line pinned to `bottom: 4px` inside it. A VS Code
+        // webview's body has no margin, so its offset is 0.
+        const element = getContainer();
+        const top =
+            element == null
+                ? 0
+                : Math.max(0, Math.round(element.getBoundingClientRect().top));
         return {
             width: window.innerWidth,
-            height: window.innerHeight
+            height: window.innerHeight - 2 * top
         };
     }
 
