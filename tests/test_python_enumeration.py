@@ -1,11 +1,12 @@
 """`python_enumeration` reaches ocp-tessellate's converter from every config level.
 
-The names it changes are the tree paths, and paths are an API - animation
-tracks, saved states and selections address objects by them - so the flag is
-off unless the user turns it on: the built-in default is False, every host
-stores False, and a stored True or a `set_defaults` or a show keyword is the
-opt-in (vscode-ocp-cad-viewer issue 242). It is ocp-tessellate's alone: the
-viewer receives the names, never the flag.
+Repeated names are numbered from 0 like Python indices by default: the
+built-in default is True and every host stores True (vscode-ocp-cad-viewer
+issue 242). The names are the tree paths, and paths are an API - animation
+tracks, saved states and selections address objects by them - so a stored
+False, `set_defaults(python_enumeration=False)` or the show keyword brings the
+former names back. It is ocp-tessellate's alone: the viewer receives the
+names, never the flag.
 """
 
 import pytest
@@ -60,9 +61,9 @@ def _assert_not_sent(viewer):
         assert "pythonEnumeration" not in data["config"]
 
 
-def test_the_default_keeps_the_former_names():
-    assert DEFAULT_DEFAULTS["python_enumeration"] is False
-    assert _show({}).last_paths == OLD
+def test_the_default_numbers_from_zero():
+    assert DEFAULT_DEFAULTS["python_enumeration"] is True
+    assert _show({}).last_paths == PYTHON
 
 
 def test_a_stored_true_numbers_from_zero():

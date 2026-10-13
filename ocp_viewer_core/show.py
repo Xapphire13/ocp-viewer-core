@@ -1082,7 +1082,7 @@ class Viewer(Generic[H]):
             show_locals:             In build123d show local part/sketch/line in addition to the relocated
                                      object (default=True)
             python_enumeration:      Number repeated names from 0 like Python indices, Solid(0), Solid(1), ...
-                                     instead of Solid, Solid(2), ... - changes the tree paths (default=False)
+                                     instead of Solid, Solid(2), ... - False keeps the former names (default=True)
             helper_scale:            Scale of rendered helpers (locations, axis, mates for MAssemblies) (default=1)
                                      If it is a float < 1, used the max distance to nested bounding box times
                                      helper_scale to determine the absolut value of it
@@ -1506,7 +1506,7 @@ class Viewer(Generic[H]):
             show_locals:             In build123d show local part/sketch/line in addition to the relocated
                                      object (default=True)
             python_enumeration:      Number repeated names from 0 like Python indices, Solid(0), Solid(1), ...
-                                     instead of Solid, Solid(2), ... - changes the tree paths (default=False)
+                                     instead of Solid, Solid(2), ... - False keeps the former names (default=True)
             helper_scale:            Scale of rendered helpers (locations, axis, mates for MAssemblies) (default=1)
                                      If it is a float < 1, used the max distance to nested bounding box times
                                      helper_scale to determine the absolut value of it
@@ -1896,7 +1896,7 @@ class Viewer(Generic[H]):
             show_locals:             In build123d show local part/sketch/line in addition to the relocated
                                      object (default=True)
             python_enumeration:      Number repeated names from 0 like Python indices, Solid(0), Solid(1), ...
-                                     instead of Solid, Solid(2), ... - changes the tree paths (default=False)
+                                     instead of Solid, Solid(2), ... - False keeps the former names (default=True)
             helper_scale:            Scale of rendered helpers (locations, axis, mates for MAssemblies) (default=1)
                                      If it is a float < 1, used the max distance to nested bounding box times
                                      helper_scale to determine the absolut value of it

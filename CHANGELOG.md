@@ -2,6 +2,10 @@
 
 Since 1.0.2 the Python and JavaScript halves version separately on the patch level and agree on major.minor - see `Development.md`. Entries say which half they belong to.
 
+## Python v1.1.1 (unreleased)
+
+- `python_enumeration` defaults to `True` (was `False` in 1.1.0): repeated names are numbered from 0 like Python indices, `Solid(0)`, `Solid(1)`, `Solid(2)` instead of `Solid`, `Solid(2)`, `Solid(3)` (vscode-ocp-cad-viewer issue 242). The built-in default changes, and the four viewers store `True` from their next release. The names are the tree paths that animation tracks, saved states and selections address, so `python_enumeration=False` - as a stored setting, through `set_defaults` or as a show keyword - restores the former names. ocp-tessellate's own default stays `False`; the core passes the value explicitly. `tests/test_python_enumeration.py` covers it
+
 ## JavaScript v1.1.0 (2026-10-10)
 
 - Requires three-cad-viewer 5.1: the peer range is `>=5.1.0 <5.2.0` (was `>=5.0.3 <5.1.0`). The minor also follows the Python half, because major.minor is the contract between the halves (`Development.md`)
