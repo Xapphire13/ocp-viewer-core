@@ -66,6 +66,24 @@ def make_pbr(name="Gold", **values):
     )
 
 
+INSTALLED = [b for b in ("OCP", "nanocct") if importlib.util.find_spec(b) is not None]
+
+
+@pytest.mark.parametrize("binding", INSTALLED)
+def test_pbr_to_vis_material_takes_the_binding_of_like(binding):
+    """The material for a shape of either binding, e.g. CadQuery on OCP where
+    nanocct is installed and would otherwise be the binding."""
+    like = importlib.import_module(f"{binding}.TopLoc").TopLoc_Location()
+    vis = pbr_to_vis_material(make_pbr(color=[1.0, 0.8, 0.3]), like=like)
+    assert type(vis).__module__.partition(".")[0] == binding
+    assert vis_material_to_pbr(vis).values.color == pytest.approx([1.0, 0.8, 0.3])
+
+
+def test_pbr_to_vis_material_without_like_uses_the_default_binding():
+    vis = pbr_to_vis_material(make_pbr(color=[1.0, 0.8, 0.3]))
+    assert type(vis).__module__.partition(".")[0] == BINDING
+
+
 # ------------------------- vis_material_to_pbr ------------------------- #
 
 

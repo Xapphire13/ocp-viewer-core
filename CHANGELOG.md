@@ -2,6 +2,11 @@
 
 Since 1.0.2 the Python and JavaScript halves version separately on the patch level and agree on major.minor - see `Development.md`. Entries say which half they belong to.
 
+## Python v1.1.2 (2026-10-13)
+
+- Requires `ocp-tessellate>=3.6.2,<3.7.0` (was `>=3.6.0`). 3.6.2 fixes `show(assembly, render_mates=True)` for CadQuery assemblies where nanocct is installed (`TypeError: locations of two bindings`): the mates' coordinate systems were built in nanocct under the assembly's OCP location. A floor rather than a hope, since pip's default `only-if-needed` upgrade strategy keeps an installed 3.6.0 when the core is upgraded
+- `pbr_to_vis_material(pbr_properties, like=None)`: the material is built in the binding of `like`, an OCCT object of the binding it is meant for, e.g. `cq_obj.wrapped` for CadQuery on OCP where nanocct is installed. Without it, nanocct where installed, else OCP, as before; that gave CadQuery-on-OCP users a nanocct `XCAFDoc_VisMaterial`. Passed to ocp-tessellate 3.6.2's `make_vis_material(..., like=)`. `tests/test_materials.py` covers both bindings
+
 ## Python v1.1.1 (2026-10-13)
 
 - `python_enumeration` defaults to `True` (was `False` in 1.1.0): repeated names are numbered from 0 like Python indices, `Solid(0)`, `Solid(1)`, `Solid(2)` instead of `Solid`, `Solid(2)`, `Solid(3)` (vscode-ocp-cad-viewer issue 242). The built-in default changes, and the four viewers store `True` from their next release. The names are the tree paths that animation tracks, saved states and selections address, so `python_enumeration=False` - as a stored setting, through `set_defaults` or as a show keyword - restores the former names. ocp-tessellate's own default stays `False`; the core passes the value explicitly. `tests/test_python_enumeration.py` covers it

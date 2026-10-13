@@ -97,7 +97,7 @@ def vis_material_to_pbr(vis_material, name=None):
     )
 
 
-def pbr_to_vis_material(pbr_properties):
+def pbr_to_vis_material(pbr_properties, like=None):
     """Convert a `PbrProperties` to a new `XCAFDoc_VisMaterial`.
 
     Only the fields `XCAFDoc_VisMaterialPBR` can hold survive: color plus
@@ -109,6 +109,11 @@ def pbr_to_vis_material(pbr_properties):
     and is dropped.
 
     @param pbr_properties: The `PbrProperties` to write
+    @param like: Only relevant where both OCP and nanocct are installed: an
+        OCCT object of the binding the material is meant for, e.g. the shape
+        it goes with (`cq_obj.wrapped` for CadQuery on OCP). Without it the
+        material is built in nanocct. With only one binding installed, like
+        is not needed and the one binding is used
 
     @return: A new `XCAFDoc_VisMaterial` with the PBR block set
     """
@@ -152,4 +157,5 @@ def pbr_to_vis_material(pbr_properties):
         alpha_mode=alpha_mode,
         alpha_cutoff=alpha_cutoff,
         double_sided=values.side == THREEJS_DOUBLE_SIDE,
+        like=like,
     )
