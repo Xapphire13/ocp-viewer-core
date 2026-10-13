@@ -5,7 +5,7 @@ The shared half of the OCP viewer ecosystem: one show suite, one tessellation, o
 Currently supported hosts (viewers):
 
 - [ocp_vscode](https://github.com/bernhard-42/vscode-ocp-cad-viewer) — the VS Code extension
-- [ocp_viewer](https://github.com/bernhard-42/ocp-viewer) — the standalone viewer, `python -m ocp_viewer`
+- [ocp_viewer](https://github.com/bernhard-42/ocp_viewer) — the standalone viewer, `python -m ocp_viewer`
 - [Jupyter CadQuery](https://github.com/bernhard-42/jupyter-cadquery) — The viewer for Jupyter Lab through [cad-viewer-widget](https://github.com/bernhard-42/cad-viewer-widget)
 - [build123d Studio](https://github.com/bernhard-42/build123d-studio) — The standalone app based on [neutralinojs](https://neutralino.js.org/)
 
