@@ -145,6 +145,10 @@ export const VIEWER_OPTION_KEYS = [
   "up",
   "transparent",
   "control",
+  // Pivot and zoom under the cursor, orbit controls only (three-cad-viewer
+  // `cursorPivot`). Opt-in: a host that does not set it keeps the renderer's
+  // default.
+  "cursorPivot",
   "panSpeed",
   "zoomSpeed",
   "rotateSpeed",
